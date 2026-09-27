@@ -1,9 +1,15 @@
 // Base URL for backend API:
 // When running locally in browser (localhost / 127.0.0.1), connect directly to local backend on port 8080.
 // When hosted on Vercel, connect via VITE_API_URL or ngrok tunnel.
-const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const isLocal = typeof window !== 'undefined' && (
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1' ||
+  window.location.hostname.startsWith('192.168.') ||
+  window.location.hostname.startsWith('10.') ||
+  window.location.hostname.endsWith('.local')
+);
 
-export const API_BASE = (import.meta as any).env?.VITE_API_URL || (isLocal ? 'http://localhost:8080' : 'https://bats-tummy-underarm.ngrok-free.dev');
+export const API_BASE = (import.meta as any).env?.VITE_API_URL || (isLocal ? `http://${window.location.hostname}:8080` : 'https://bats-tummy-underarm.ngrok-free.dev');
 
 export interface ApiMediaInfo {
   title: string;
