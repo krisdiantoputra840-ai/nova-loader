@@ -6,7 +6,7 @@ interface ProgressBarProps {
 export default function ProgressBar({ progress, className = '' }: ProgressBarProps) {
   return (
     <div
-      className={`w-full h-1.5 bg-bg-elevated rounded-full overflow-hidden ${className}`}
+      className={`w-full h-1.5 bg-bg-elevated rounded-full overflow-hidden relative ${className}`}
       role="progressbar"
       aria-valuenow={progress}
       aria-valuemin={0}
@@ -14,9 +14,13 @@ export default function ProgressBar({ progress, className = '' }: ProgressBarPro
       aria-label={`Download progress: ${progress}%`}
     >
       <div
-        className="h-full bg-accent rounded-full progress-bar"
+        className="h-full bg-accent rounded-full transition-all duration-300 ease-out relative overflow-hidden"
         style={{ width: `${progress}%` }}
-      />
+      >
+        {progress < 100 && (
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent animate-shimmer" />
+        )}
+      </div>
     </div>
   );
 }
