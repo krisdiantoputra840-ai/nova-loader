@@ -36,9 +36,9 @@ function groupHistory(items: DownloadItem[]) {
 }
 
 const GROUP_LABELS: Record<string, string> = {
-  today: 'Hari ini',
-  yesterday: 'Kemarin',
-  earlier: 'Sebelumnya',
+  today: 'Today',
+  yesterday: 'Yesterday',
+  earlier: 'Earlier',
 };
 
 export default function History({ history, onDelete, onOpenMedia }: HistoryProps) {
@@ -107,13 +107,13 @@ export default function History({ history, onDelete, onOpenMedia }: HistoryProps
               Recent Downloads & History
             </h1>
             <p className="text-[13px] text-text-secondary mt-1">
-              Buka kembali lagu atau video yang sudah diunduh untuk mendownload lagi tanpa perlu mencari linknya.
+              Reopen downloaded songs or videos to download them again without searching for links.
             </p>
           </div>
           {hasItems && (
             <div className="flex items-center gap-2 self-start sm:self-auto">
               <span className="text-[12px] px-2.5 py-1 rounded-full bg-bg-surface border border-border-subtle text-text-secondary font-medium">
-                {filteredItems.length} dari {history.length} item
+                {filteredItems.length} of {history.length} {history.length === 1 ? 'item' : 'items'}
               </span>
             </div>
           )}
@@ -122,8 +122,8 @@ export default function History({ history, onDelete, onOpenMedia }: HistoryProps
         {!hasItems ? (
           <EmptyState
             icon={Clock}
-            title="Belum ada riwayat unduhan"
-            description="Media yang selesai kamu unduh akan otomatis muncul di sini dan dapat diunduh ulang kapan saja."
+            title="No downloads yet"
+            description="Completed downloads will appear here and can be re-downloaded anytime."
           />
         ) : (
           <div className="space-y-6">
@@ -141,7 +141,7 @@ export default function History({ history, onDelete, onOpenMedia }: HistoryProps
                   }`}
                 >
                   <Layers size={13} strokeWidth={2} />
-                  <span>Semua</span>
+                  <span>All</span>
                   <span
                     className={`ml-1 px-1.5 py-0.2 rounded-full text-[11px] ${
                       selectedCategory === 'all' ? 'bg-white/20 text-white' : 'bg-bg-elevated text-text-muted'
@@ -203,14 +203,14 @@ export default function History({ history, onDelete, onOpenMedia }: HistoryProps
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cari lagu, video, atau artis..."
+                  placeholder="Search songs, videos, or artists..."
                   className="w-full pl-9 pr-9 py-2 text-[13px] bg-bg-base/80 border border-border-subtle rounded-[8px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors"
-                    title="Hapus pencarian"
+                    title="Clear search"
                   >
                     <X size={13} strokeWidth={2} />
                   </button>
@@ -222,18 +222,18 @@ export default function History({ history, onDelete, onOpenMedia }: HistoryProps
             {filteredItems.length === 0 ? (
               <div className="text-center py-12 px-4 bg-bg-surface/50 border border-dashed border-border-subtle rounded-[12px] animate-fade-in">
                 <Search size={28} strokeWidth={1.5} className="mx-auto text-text-muted mb-3" />
-                <h3 className="text-[15px] font-semibold text-text-primary">Tidak ada unduhan yang cocok</h3>
+                <h3 className="text-[15px] font-semibold text-text-primary">No matching downloads found</h3>
                 <p className="text-[13px] text-text-secondary mt-1 max-w-[400px] mx-auto">
                   {searchQuery
-                    ? `Tidak ditemukan hasil untuk "${searchQuery}" pada kategori yang dipilih.`
-                    : 'Belum ada riwayat unduhan pada kategori ini.'}
+                    ? `No results found for "${searchQuery}" in the selected category.`
+                    : 'No downloads found in this category.'}
                 </p>
                 <button
                   onClick={handleResetFilters}
                   className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[12.5px] font-medium text-accent hover:text-accent-hover bg-accent/10 hover:bg-accent/20 rounded-[8px] transition-colors"
                 >
                   <RotateCcw size={12} strokeWidth={2} />
-                  <span>Reset Filter & Pencarian</span>
+                  <span>Reset Filters & Search</span>
                 </button>
               </div>
             ) : (

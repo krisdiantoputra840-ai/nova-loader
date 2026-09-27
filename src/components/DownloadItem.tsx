@@ -140,10 +140,10 @@ export default function DownloadItemCard({
             onOpenMedia(item);
           }}
           className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-accent/10 text-accent hover:bg-accent hover:text-white text-[12px] font-medium transition-all duration-150 shrink-0"
-          title="Buka & Download Lagi"
+          title="Open & Download Again"
         >
           <RotateCcw size={12} strokeWidth={2} />
-          <span>Download Lagi</span>
+          <span>Download Again</span>
         </button>
       )}
 
@@ -176,7 +176,7 @@ export default function DownloadItemCard({
         </button>
 
         {menuOpen && (
-          <div className="absolute right-0 top-8 z-30 w-44 bg-bg-elevated border border-border-subtle rounded-[10px] shadow-card overflow-hidden animate-fade-up">
+          <div className="absolute right-0 top-8 z-30 w-48 bg-bg-elevated border border-border-subtle rounded-[10px] shadow-card overflow-hidden animate-fade-up">
             {onOpenMedia && (
               <button
                 onClick={(e) => {
@@ -187,7 +187,7 @@ export default function DownloadItemCard({
                 className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-[13px] text-accent hover:bg-bg-surface transition-colors duration-150 font-medium"
               >
                 <RotateCcw size={13} strokeWidth={2} />
-                Download Lagi
+                Download Again
               </button>
             )}
 
@@ -200,12 +200,12 @@ export default function DownloadItemCard({
                   {copied ? (
                     <>
                       <Check size={13} strokeWidth={2} className="text-emerald-400" />
-                      <span className="text-emerald-400 font-medium">Link Tersalin!</span>
+                      <span className="text-emerald-400 font-medium">Link Copied!</span>
                     </>
                   ) : (
                     <>
                       <Copy size={13} strokeWidth={1.75} />
-                      Salin Link Asli
+                      Copy Original Link
                     </>
                   )}
                 </button>
@@ -215,7 +215,7 @@ export default function DownloadItemCard({
                   className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-[13px] text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors duration-150"
                 >
                   <ExternalLink size={13} strokeWidth={1.75} />
-                  Buka di Browser
+                  Open in Browser
                 </button>
               </>
             )}
@@ -232,7 +232,7 @@ export default function DownloadItemCard({
                   className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-[13px] text-red-400 hover:bg-bg-surface transition-colors duration-150"
                 >
                   <Trash2 size={13} strokeWidth={1.75} />
-                  Hapus dari Riwayat
+                  Remove from History
                 </button>
               </>
             )}

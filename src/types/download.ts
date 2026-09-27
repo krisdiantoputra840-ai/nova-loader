@@ -55,7 +55,7 @@ export function itemToMediaInfo(item: DownloadItem): MediaInfo {
     channel: item.channel,
     platform: item.platform,
     thumbnail: item.thumbnail,
-    duration: item.duration || '0:00',
+    duration: item.duration && item.duration !== '0:00' ? item.duration : '',
     url: item.url || '',
   };
 }

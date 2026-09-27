@@ -109,14 +109,14 @@ export default function Home({
                   Recent downloads
                 </h2>
                 <p className="text-[12px] text-text-muted mt-0.5">
-                  Klik lagu atau video untuk membuka dan mendownload lagi
+                  Click any song or video to open and download again
                 </p>
               </div>
               <Link
                 to="/history"
                 className="text-[13px] text-accent hover:text-accent-hover transition-colors duration-150 font-medium"
               >
-                Lihat Semua ({history.length}) →
+                See all ({history.length}) →
               </Link>
             </div>
             <div className="flex flex-col gap-2">

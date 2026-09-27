@@ -104,11 +104,16 @@ def _is_spotify(url: str) -> bool:
 
 def _fmt_duration(seconds) -> str:
     if not seconds:
-        return "0:00"
-    s = int(float(seconds))
-    h, r = divmod(s, 3600)
-    m, sec = divmod(r, 60)
-    return f"{h}:{m:02d}:{sec:02d}" if h else f"{m}:{sec:02d}"
+        return ""
+    try:
+        s = int(float(seconds))
+        if s <= 0:
+            return ""
+        h, r = divmod(s, 3600)
+        m, sec = divmod(r, 60)
+        return f"{h}:{m:02d}:{sec:02d}" if h else f"{m}:{sec:02d}"
+    except (ValueError, TypeError):
+        return ""
 
 def _quality_fmt(quality: str) -> str:
     """yt-dlp format string for video quality."""
@@ -272,12 +277,23 @@ async def get_info(req: InfoRequest):
             if m:
                 desc = m.group(1)
                 # Extract artist (first bullet-separated part after first ·)
-                parts = [p.strip() for p in desc.split("·")]
-                if len(parts) >= 1:
-                    artist = parts[0].strip()
-                    # Remove "Listen to X on Spotify. " prefix
-                    if "." in artist:
-                        artist = artist.split(".")[-1].strip()
+            # Extract duration
+            duration = ""
+            m_dur = _re.search(r'<meta\s+(?:property|name)=["\']music:duration["\']\s+content=["\'](\d+)["\']', html)
+            if not m_dur:
+                m_dur = _re.search(r'content=["\'](\d+)["\']\s+(?:property|name)=["\']music:duration["\']', html)
+            if m_dur:
+                sec = int(m_dur.group(1))
+                if sec > 10000:
+                    sec = sec // 1000
+                duration = _fmt_duration(sec)
+            else:
+                m_json = _re.search(r'"duration(?:_ms)?":\s*(\d+)', html)
+                if m_json:
+                    sec = int(m_json.group(1))
+                    if sec > 10000:
+                        sec = sec // 1000
+                    duration = _fmt_duration(sec)
         except Exception:
             pass
 
@@ -286,7 +302,7 @@ async def get_info(req: InfoRequest):
             channel=artist,
             platform="spotify",
             thumbnail=thumbnail,
-            duration="",
+            duration=duration,
             url=req.url,
         )
 

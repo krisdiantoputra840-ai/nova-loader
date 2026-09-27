@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, Info } from 'lucide-react';
 import MediaPreview from '../components/MediaPreview';
@@ -6,6 +6,7 @@ import FormatSelector from '../components/FormatSelector';
 import QualitySelector from '../components/QualitySelector';
 import type { MediaInfo, MediaType, SelectedFormat } from '../types/download';
 import { videoQualities, audioQualities, tiktokQualities } from '../data/mockData';
+import { fetchMediaInfo } from '../api/client';
 
 interface MediaDetailsProps {
   media: MediaInfo | null;
@@ -28,6 +29,25 @@ export default function MediaDetails({
   const navigate = useNavigate();
   const isTikTok = media?.platform === 'tiktok';
   const isSpotifyOrMusic = media?.platform === 'spotify' || media?.platform === 'ytmusic';
+
+  const [currentDuration, setCurrentDuration] = useState<string>(() => {
+    return (media?.duration && media.duration !== '0:00') ? media.duration : '';
+  });
+
+  useEffect(() => {
+    if (media?.duration && media.duration !== '0:00') {
+      setCurrentDuration(media.duration);
+    } else if (media?.url) {
+      fetchMediaInfo(media.url)
+        .then((info) => {
+          if (info.duration && info.duration !== '0:00') {
+            setCurrentDuration(info.duration);
+            media.duration = info.duration;
+          }
+        })
+        .catch(() => {});
+    }
+  }, [media?.url, media?.duration]);
 
   const [mediaType, setMediaType] = useState<MediaType>(() => {
     if (initialFormat?.type) return initialFormat.type;
@@ -114,7 +134,7 @@ export default function MediaDetails({
 
         <div className="max-w-[560px] space-y-8">
           {/* Media preview */}
-          <MediaPreview media={media} />
+          <MediaPreview media={{ ...media, duration: currentDuration }} />
 
           {/* Info banner for Spotify / YT Music */}
           {isSpotifyOrMusic && (

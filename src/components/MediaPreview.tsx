@@ -48,7 +48,7 @@ export default function MediaPreview({ media }: MediaPreviewProps) {
               crossOrigin="anonymous"
             />
             {/* YouTube duration badge overlay on thumbnail */}
-            {isYouTube && media.duration && (
+            {isYouTube && media.duration && media.duration !== '0:00' && (
               <span className="absolute bottom-1 right-1 px-1.5 py-0.5 text-[10px] font-semibold bg-black/85 text-white/95 rounded-[4px] backdrop-blur-[2px] leading-tight tabular-nums pointer-events-none">
                 {media.duration}
               </span>
@@ -74,7 +74,7 @@ export default function MediaPreview({ media }: MediaPreviewProps) {
             {media.channel} · {getPlatformName(media.platform)}
           </span>
         </div>
-        {media.duration && !isYouTube && (
+        {media.duration && media.duration !== '0:00' && !isYouTube && (
           <span className="text-[12px] text-text-muted mt-1 inline-block">{media.duration}</span>
         )}
       </div>
