@@ -33,21 +33,36 @@ export default function MediaDetails({
   const [currentDuration, setCurrentDuration] = useState<string>(() => {
     return (media?.duration && media.duration !== '0:00') ? media.duration : '';
   });
+  const [currentChannel, setCurrentChannel] = useState<string>(() => {
+    return media?.channel || '';
+  });
 
   useEffect(() => {
-    if (media?.duration && media.duration !== '0:00') {
-      setCurrentDuration(media.duration);
-    } else if (media?.url) {
+    const needsDuration = !media?.duration || media.duration === '0:00';
+    const needsChannel = !media?.channel || media.channel === 'Unknown Artist' || media.channel === 'Unknown';
+
+    if (media?.url && (needsDuration || needsChannel)) {
       fetchMediaInfo(media.url)
         .then((info) => {
           if (info.duration && info.duration !== '0:00') {
             setCurrentDuration(info.duration);
             media.duration = info.duration;
           }
+          if (info.channel && info.channel !== 'Unknown Artist' && info.channel !== 'Unknown') {
+            setCurrentChannel(info.channel);
+            media.channel = info.channel;
+          }
         })
         .catch(() => {});
+    } else {
+      if (media?.duration && media.duration !== '0:00') {
+        setCurrentDuration(media.duration);
+      }
+      if (media?.channel) {
+        setCurrentChannel(media.channel);
+      }
     }
-  }, [media?.url, media?.duration]);
+  }, [media?.url, media?.duration, media?.channel]);
 
   const [mediaType, setMediaType] = useState<MediaType>(() => {
     if (initialFormat?.type) return initialFormat.type;
@@ -134,7 +149,7 @@ export default function MediaDetails({
 
         <div className="max-w-[560px] space-y-8">
           {/* Media preview */}
-          <MediaPreview media={{ ...media, duration: currentDuration }} />
+          <MediaPreview media={{ ...media, duration: currentDuration, channel: currentChannel || media.channel }} />
 
           {/* Info banner for Spotify / YT Music */}
           {isSpotifyOrMusic && (

@@ -270,13 +270,25 @@ async def get_info(req: InfoRequest):
                 if m_title:
                     title = m_title.group(1)
 
-            # og:description typically: "Listen to Track Name on Spotify. Artist · Song · Year"
-            m = _re.search(r'<meta\s+(?:property|name)=["\']og:description["\']\s+content=["\']([^"\']+)["\']', html)
-            if not m:
-                m = _re.search(r'content=["\']([^"\']+)["\']\s+(?:property|name)=["\']og:description["\']', html)
-            if m:
-                desc = m.group(1)
-                # Extract artist (first bullet-separated part after first ·)
+            # Extract artist: prefer music:musician_description meta tag
+            m_artist = _re.search(r'<meta\s+(?:property|name)=["\']music:musician_description["\']\s+content=["\']([^"\']+)["\']', html)
+            if not m_artist:
+                m_artist = _re.search(r'content=["\']([^"\']+)["\']\s+(?:property|name)=["\']music:musician_description["\']', html)
+            if m_artist:
+                artist = m_artist.group(1).strip()
+            else:
+                # og:description typically: "Listen to Track Name on Spotify. Artist · Song · Year"
+                m = _re.search(r'<meta\s+(?:property|name)=["\']og:description["\']\s+content=["\']([^"\']+)["\']', html)
+                if not m:
+                    m = _re.search(r'content=["\']([^"\']+)["\']\s+(?:property|name)=["\']og:description["\']', html)
+                if m:
+                    desc = m.group(1)
+                    parts = [p.strip() for p in desc.split("·")]
+                    if len(parts) >= 1:
+                        artist = parts[0].strip()
+                        if "." in artist:
+                            artist = artist.split(".")[-1].strip()
+
             # Extract duration
             duration = ""
             m_dur = _re.search(r'<meta\s+(?:property|name)=["\']music:duration["\']\s+content=["\'](\d+)["\']', html)
