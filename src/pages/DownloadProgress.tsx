@@ -9,10 +9,22 @@ import { downloadMedia, saveBlobAsFile } from '../api/client';
 interface DownloadProgressProps {
   media: MediaInfo | null;
   format: SelectedFormat | null;
-  onComplete: (filename: string) => void;
+  onComplete: (filename: string, fileSize?: string) => void;
 }
 
 type Phase = 'downloading' | 'complete' | 'error';
+
+function formatBytes(bytes: number): string {
+  if (!bytes || bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let size = bytes;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex++;
+  }
+  return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
 
 export default function DownloadProgress({ media, format, onComplete }: DownloadProgressProps) {
   const navigate = useNavigate();
@@ -23,16 +35,24 @@ export default function DownloadProgress({ media, format, onComplete }: Download
   const [imgError, setImgError] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Fake progress ticker while real download runs in background
+  // Smooth continuous progress ticker that never freezes at 90%
   useEffect(() => {
     if (phase !== 'downloading') return;
 
-    // Animate progress up to ~90%, real completion will set 100%
     let current = 0;
     const timer = setInterval(() => {
-      current = Math.min(current + Math.random() * 3, 90);
-      setProgress(Math.round(current));
-    }, 400);
+      if (current < 45) {
+        current += Math.random() * 3 + 1.5;
+      } else if (current < 75) {
+        current += Math.random() * 1.8 + 0.8;
+      } else if (current < 88) {
+        current += Math.random() * 1.0 + 0.4;
+      } else if (current < 98.5) {
+        // Continuous smooth progress past 90 so it never freezes
+        current += (99 - current) * 0.04;
+      }
+      setProgress(Math.min(Math.round(current), 98));
+    }, 450);
 
     return () => clearInterval(timer);
   }, [phase]);
@@ -62,11 +82,14 @@ export default function DownloadProgress({ media, format, onComplete }: Download
         saveBlobAsFile(blob, filename);
         setSavedFilename(filename);
 
+        // Calculate real file size from the downloaded blob
+        const realSize = formatBytes(blob.size);
+
         setProgress(100);
         setTimeout(() => {
           setPhase('complete');
-          onComplete(filename);
-        }, 400);
+          onComplete(filename, realSize);
+        }, 350);
       } catch (err) {
         if (controller.signal.aborted) return;
         const msg = err instanceof Error ? err.message : 'Download failed.';

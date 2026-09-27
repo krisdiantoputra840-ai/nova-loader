@@ -44,7 +44,7 @@ function saveToStorage(items: DownloadItem[]): void {
 
 interface UseDownloadReturn {
   history: DownloadItem[];
-  addToHistory: (media: MediaInfo, format: SelectedFormat) => DownloadItem;
+  addToHistory: (media: MediaInfo, format: SelectedFormat, actualFileSize?: string) => DownloadItem;
   removeFromHistory: (id: string) => void;
   clearHistory: () => void;
 }
@@ -59,7 +59,7 @@ export function useDownload(_initialHistory: DownloadItem[]): UseDownloadReturn 
   }, [history]);
 
   const addToHistory = useCallback(
-    (media: MediaInfo, format: SelectedFormat): DownloadItem => {
+    (media: MediaInfo, format: SelectedFormat, actualFileSize?: string): DownloadItem => {
       const item: DownloadItem = {
         id: crypto.randomUUID(),
         title: media.title,
@@ -70,7 +70,7 @@ export function useDownload(_initialHistory: DownloadItem[]): UseDownloadReturn 
         format: format.format,
         quality: format.quality,
         qualityLabel: format.qualityLabel,
-        fileSize: getFileSizeForQuality(format.quality, format.type),
+        fileSize: actualFileSize || getFileSizeForQuality(format.quality, format.type),
         status: 'completed',
         completedAt: new Date(),
         url: media.url,

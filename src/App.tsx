@@ -40,9 +40,9 @@ export default function App() {
     setCurrentFormat(format);
   };
 
-  const handleDownloadComplete = (_filename: string) => {
+  const handleDownloadComplete = (_filename: string, fileSize?: string) => {
     if (currentMedia && currentFormat) {
-      addToHistory(currentMedia, currentFormat);
+      addToHistory(currentMedia, currentFormat, fileSize);
 
       // Browser notification if enabled
       if (settings.notifications && 'Notification' in window && Notification.permission === 'granted') {
