@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Music, Video } from 'lucide-react';
 import type { MediaInfo } from '../types/download';
 import { PlatformIcon, getPlatformName } from './PlatformList';
@@ -10,10 +10,26 @@ interface MediaPreviewProps {
 export default function MediaPreview({ media }: MediaPreviewProps) {
   const [imgError, setImgError] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [currentSrc, setCurrentSrc] = useState<string | null>(media.thumbnail);
+
+  useEffect(() => {
+    setCurrentSrc(media.thumbnail);
+    setImgError(false);
+    setLoaded(false);
+  }, [media.thumbnail]);
 
   const isAudio = media.platform === 'spotify' || media.platform === 'ytmusic';
   const isYouTube = media.platform === 'youtube';
-  const hasThumbnail = Boolean(media.thumbnail) && !imgError;
+  const hasThumbnail = Boolean(currentSrc) && !imgError;
+
+  const handleImgError = () => {
+    // If maxresdefault fails (common 404 on YouTube/YT Music), fallback to hqdefault
+    if (currentSrc && currentSrc.includes('maxresdefault')) {
+      setCurrentSrc(currentSrc.replace(/maxresdefault\.(?:webp|jpg)/, 'hqdefault.jpg'));
+    } else {
+      setImgError(true);
+    }
+  };
 
   return (
     <div className="flex items-center gap-4">
@@ -37,15 +53,14 @@ export default function MediaPreview({ media }: MediaPreviewProps) {
               </div>
             )}
             <img
-              src={media.thumbnail!}
+              src={currentSrc!}
               alt={media.title}
               className={`w-full h-full object-cover transition-opacity duration-200 ${
                 loaded ? 'opacity-100' : 'opacity-0'
               }`}
               onLoad={() => setLoaded(true)}
-              onError={() => setImgError(true)}
+              onError={handleImgError}
               referrerPolicy="no-referrer"
-              crossOrigin="anonymous"
             />
             {/* YouTube duration badge overlay on thumbnail */}
             {isYouTube && media.duration && media.duration !== '0:00' && (

@@ -192,7 +192,7 @@ async def _spotify_download(url: str, job_id: str, audio_fmt: str = "mp3") -> Pa
         cmd += ["--ffmpeg", str(Path(FFMPEG_DIR) / "ffmpeg.exe")]
 
     try:
-        await _run(cmd, timeout=300)
+        await _run(cmd, timeout=45)
     except Exception:
         pass
 
@@ -204,7 +204,7 @@ async def _spotify_download(url: str, job_id: str, audio_fmt: str = "mp3") -> Pa
     if files:
         return files[0]
 
-    # Layer 2: Automatic yt-dlp fallback if spotdl found no usable match
+    # Layer 2: Automatic fast yt-dlp search fallback
     track_title = ""
     track_artist = ""
     try:
@@ -214,13 +214,14 @@ async def _spotify_download(url: str, job_id: str, audio_fmt: str = "mp3") -> Pa
     except Exception:
         pass
 
-    search_query = f"{track_title} {track_artist} audio".strip()
-    if not search_query:
+    clean_artist = "" if track_artist in ("Unknown Artist", "Unknown", "") else track_artist
+    search_query = f"{track_title} {clean_artist} audio".strip()
+    if not search_query or search_query == "audio":
         search_query = url
 
     clean_title = _safe_filename(track_title or 'track')
-    clean_artist = _safe_filename(track_artist or 'artist')
-    fallback_out_tpl = str(out_dir / f"{clean_title} - {clean_artist}.%(ext)s")
+    clean_artist_str = _safe_filename(clean_artist or 'artist')
+    fallback_out_tpl = str(out_dir / f"{clean_title} - {clean_artist_str}.%(ext)s")
 
     ytdlp_args = YTDLP_CMD + [
         "--no-playlist",
@@ -234,13 +235,25 @@ async def _spotify_download(url: str, job_id: str, audio_fmt: str = "mp3") -> Pa
         ytdlp_args += ["--ffmpeg-location", FFMPEG_DIR]
 
     try:
-        await _run(ytdlp_args, timeout=300)
+        await _run(ytdlp_args, timeout=90)
         files = list(out_dir.glob(f"*.{fmt}"))
         if not files:
             files = [f for f in out_dir.iterdir() if f.is_file()]
     except Exception as e:
         shutil.rmtree(out_dir, ignore_errors=True)
         raise HTTPException(status_code=500, detail=f"Download failed: {str(e)}")
+
+    if not files:
+        # Fallback search by title only
+        if clean_artist:
+            try:
+                ytdlp_args[-1] = f"ytsearch1:{track_title} audio"
+                await _run(ytdlp_args, timeout=60)
+                files = list(out_dir.glob(f"*.{fmt}"))
+                if not files:
+                    files = [f for f in out_dir.iterdir() if f.is_file()]
+            except Exception:
+                pass
 
     if not files:
         shutil.rmtree(out_dir, ignore_errors=True)
