@@ -23,38 +23,16 @@ export default function DownloadProgress({ media, format, onComplete }: Download
   const [imgError, setImgError] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  const getStatusText = (pct: number): string => {
-    if (pct >= 100) return 'Complete! Saving file...';
-    if (media?.platform === 'spotify') {
-      if (pct < 25) return 'Searching audio match on YouTube...';
-      if (pct < 60) return 'Downloading audio stream...';
-      if (pct < 85) return `Converting to ${format?.format ?? 'MP3'} & embedding metadata...`;
-      return 'Finalizing audio file for browser download...';
-    }
-    if (pct < 30) return 'Connecting to media server...';
-    if (pct < 70) return 'Downloading media stream...';
-    if (pct < 90) return `Processing & formatting ${format?.format ?? 'MP4'}...`;
-    return 'Finalizing download...';
-  };
-
-  // Smooth, continuous progress ticker that never freezes at 90%
+  // Fake progress ticker while real download runs in background
   useEffect(() => {
     if (phase !== 'downloading') return;
 
+    // Animate progress up to ~90%, real completion will set 100%
     let current = 0;
     const timer = setInterval(() => {
-      if (current < 35) {
-        current += Math.random() * 3 + 1.5;
-      } else if (current < 65) {
-        current += Math.random() * 2 + 0.8;
-      } else if (current < 85) {
-        current += Math.random() * 1.2 + 0.4;
-      } else if (current < 97) {
-        // Continuous smooth crawl past 90 so it never looks stuck
-        current += (98 - current) * 0.05;
-      }
-      setProgress(Math.min(Math.round(current), 98));
-    }, 450);
+      current = Math.min(current + Math.random() * 3, 90);
+      setProgress(Math.round(current));
+    }, 400);
 
     return () => clearInterval(timer);
   }, [phase]);
@@ -154,8 +132,8 @@ export default function DownloadProgress({ media, format, onComplete }: Download
                 <ProgressBar progress={progress} />
                 <div className="flex items-center justify-between text-[13px]">
                   <span className="text-text-primary font-medium tabular-nums">{progress}%</span>
-                  <span className="text-text-muted text-[12px] truncate max-w-[280px]">
-                    {getStatusText(progress)}
+                  <span className="text-text-muted text-[12px]">
+                    Processing on server...
                   </span>
                 </div>
               </div>
