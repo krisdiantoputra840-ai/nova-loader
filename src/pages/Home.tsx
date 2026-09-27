@@ -9,13 +9,26 @@ import { fetchMediaInfo } from '../api/client';
 interface HomeProps {
   history: DownloadItem[];
   onMediaDetected: (media: MediaInfo) => void;
+  onOpenMedia?: (item: DownloadItem) => void;
   autoDetect?: boolean;
 }
 
-export default function Home({ history, onMediaDetected, autoDetect = true }: HomeProps) {
+export default function Home({
+  history,
+  onMediaDetected,
+  onOpenMedia,
+  autoDetect = true,
+}: HomeProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  const handleOpenFromRecent = (item: DownloadItem) => {
+    if (onOpenMedia) {
+      onOpenMedia(item);
+    }
+    navigate('/media-details');
+  };
 
   const handleDetect = async (url: string) => {
     setError(null);
@@ -91,19 +104,29 @@ export default function Home({ history, onMediaDetected, autoDetect = true }: Ho
         {recentItems.length > 0 && (
           <section className="py-8" aria-labelledby="recent-heading">
             <div className="flex items-center justify-between mb-5">
-              <h2 id="recent-heading" className="text-[15px] font-semibold text-text-primary">
-                Recent downloads
-              </h2>
+              <div>
+                <h2 id="recent-heading" className="text-[15px] font-semibold text-text-primary">
+                  Recent downloads
+                </h2>
+                <p className="text-[12px] text-text-muted mt-0.5">
+                  Klik lagu atau video untuk membuka dan mendownload lagi
+                </p>
+              </div>
               <Link
                 to="/history"
-                className="text-[13px] text-accent hover:text-accent-hover transition-colors duration-150"
+                className="text-[13px] text-accent hover:text-accent-hover transition-colors duration-150 font-medium"
               >
-                See all →
+                Lihat Semua ({history.length}) →
               </Link>
             </div>
             <div className="flex flex-col gap-2">
               {recentItems.map((item) => (
-                <DownloadItemCard key={item.id} item={item} onDelete={undefined} />
+                <DownloadItemCard
+                  key={item.id}
+                  item={item}
+                  onDelete={undefined}
+                  onOpenMedia={handleOpenFromRecent}
+                />
               ))}
             </div>
           </section>

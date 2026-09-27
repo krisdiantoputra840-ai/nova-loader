@@ -74,6 +74,7 @@ export function useDownload(_initialHistory: DownloadItem[]): UseDownloadReturn 
         status: 'completed',
         completedAt: new Date(),
         url: media.url,
+        duration: media.duration,
       };
       setHistory((prev) => [item, ...prev].slice(0, MAX_HISTORY));
       return item;

@@ -9,7 +9,8 @@ import Settings from './pages/Settings';
 import { useDownload } from './hooks/useDownload';
 import { useSettings } from './hooks/useSettings';
 import { mockHistory } from './data/mockData';
-import type { MediaInfo, SelectedFormat } from './types/download';
+import type { MediaInfo, SelectedFormat, DownloadItem } from './types/download';
+import { itemToMediaInfo } from './types/download';
 
 export default function App() {
   const { history, addToHistory, removeFromHistory, clearHistory } = useDownload(mockHistory);
@@ -20,6 +21,19 @@ export default function App() {
 
   const handleMediaDetected = (media: MediaInfo) => {
     setCurrentMedia(media);
+    setCurrentFormat(null);
+  };
+
+  const handleOpenFromHistory = (item: DownloadItem) => {
+    const media = itemToMediaInfo(item);
+    const format: SelectedFormat = {
+      type: item.type,
+      format: item.format,
+      quality: item.quality,
+      qualityLabel: item.qualityLabel,
+    };
+    setCurrentMedia(media);
+    setCurrentFormat(format);
   };
 
   const handleStartDownload = (format: SelectedFormat) => {
@@ -51,6 +65,7 @@ export default function App() {
               <Home
                 history={history}
                 onMediaDetected={handleMediaDetected}
+                onOpenMedia={handleOpenFromHistory}
                 autoDetect={settings.autoDetect}
               />
             }
@@ -60,6 +75,7 @@ export default function App() {
             element={
               <MediaDetails
                 media={currentMedia}
+                initialFormat={currentFormat}
                 onStartDownload={handleStartDownload}
                 defaultFormat={settings.defaultFormat}
                 defaultQuality={settings.defaultQuality}
@@ -82,6 +98,7 @@ export default function App() {
               <History
                 history={history}
                 onDelete={removeFromHistory}
+                onOpenMedia={handleOpenFromHistory}
               />
             }
           />

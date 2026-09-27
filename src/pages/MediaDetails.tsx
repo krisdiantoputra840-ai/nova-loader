@@ -12,27 +12,44 @@ interface MediaDetailsProps {
   onStartDownload: (format: SelectedFormat) => void;
   defaultFormat?: string;
   defaultQuality?: string;
+  initialFormat?: SelectedFormat | null;
 }
 
 const AUDIO_FORMATS = ['MP3', 'WAV'] as const;
 type AudioFormat = typeof AUDIO_FORMATS[number];
 
-export default function MediaDetails({ media, onStartDownload, defaultFormat = 'MP4', defaultQuality = '1080p' }: MediaDetailsProps) {
+export default function MediaDetails({
+  media,
+  onStartDownload,
+  defaultFormat = 'MP4',
+  defaultQuality = '1080p',
+  initialFormat,
+}: MediaDetailsProps) {
   const navigate = useNavigate();
   const isTikTok = media?.platform === 'tiktok';
   const isSpotifyOrMusic = media?.platform === 'spotify' || media?.platform === 'ytmusic';
 
   const [mediaType, setMediaType] = useState<MediaType>(() => {
+    if (initialFormat?.type) return initialFormat.type;
     if (!media) return 'video';
     if (media.platform === 'spotify' || media.platform === 'ytmusic') return 'audio';
     return defaultFormat === 'MP3' || defaultFormat === 'WAV' ? 'audio' : 'video';
   });
-  const [videoQuality, setVideoQuality] = useState(defaultQuality.includes('kbps') ? '1080p' : defaultQuality);
+  const [videoQuality, setVideoQuality] = useState(() => {
+    if (initialFormat?.type === 'video' && initialFormat.quality) return initialFormat.quality;
+    return defaultQuality.includes('kbps') ? '1080p' : defaultQuality;
+  });
   const [tiktokQuality, setTiktokQuality] = useState<'no_watermark' | 'watermark'>('no_watermark');
-  const [audioQuality, setAudioQuality] = useState(defaultQuality.includes('kbps') ? defaultQuality : '320kbps');
-  const [audioFormat, setAudioFormat] = useState<AudioFormat>(
-    (defaultFormat === 'WAV' ? 'WAV' : 'MP3') as AudioFormat
-  );
+  const [audioQuality, setAudioQuality] = useState(() => {
+    if (initialFormat?.type === 'audio' && initialFormat.quality) return initialFormat.quality;
+    return defaultQuality.includes('kbps') ? defaultQuality : '320kbps';
+  });
+  const [audioFormat, setAudioFormat] = useState<AudioFormat>(() => {
+    if (initialFormat?.type === 'audio' && (initialFormat.format === 'WAV' || initialFormat.format === 'MP3')) {
+      return initialFormat.format as AudioFormat;
+    }
+    return (defaultFormat === 'WAV' ? 'WAV' : 'MP3') as AudioFormat;
+  });
 
   if (!media) {
     navigate('/');

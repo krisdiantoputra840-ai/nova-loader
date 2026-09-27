@@ -46,4 +46,16 @@ export interface DownloadItem {
   status: DownloadStatus;
   completedAt: Date;
   url: string;
+  duration?: string;
+}
+
+export function itemToMediaInfo(item: DownloadItem): MediaInfo {
+  return {
+    title: item.title,
+    channel: item.channel,
+    platform: item.platform,
+    thumbnail: item.thumbnail,
+    duration: item.duration || '0:00',
+    url: item.url || '',
+  };
 }
