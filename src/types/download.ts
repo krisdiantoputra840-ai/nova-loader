@@ -1,0 +1,49 @@
+// Download types
+export type Platform = 'youtube' | 'tiktok' | 'instagram' | 'spotify' | 'ytmusic';
+export type MediaType = 'video' | 'audio';
+export type DownloadStatus = 'completed' | 'downloading' | 'failed' | 'cancelled';
+
+export interface VideoQuality {
+  label: string;
+  value: string;
+  resolution: string;
+}
+
+export interface AudioQuality {
+  label: string;
+  value: string;
+  bitrate: string;
+}
+
+export interface MediaInfo {
+  title: string;
+  channel: string;
+  platform: Platform;
+  thumbnail: string | null;
+  duration: string;
+  url: string;
+}
+
+export interface SelectedFormat {
+  type: MediaType;
+  format: string;
+  quality: string;
+  qualityLabel: string;
+  noWatermark?: boolean;
+}
+
+export interface DownloadItem {
+  id: string;
+  title: string;
+  channel: string;
+  platform: Platform;
+  thumbnail: string | null;
+  type: MediaType;
+  format: string;
+  quality: string;
+  qualityLabel: string;
+  fileSize: string;
+  status: DownloadStatus;
+  completedAt: Date;
+  url: string;
+}

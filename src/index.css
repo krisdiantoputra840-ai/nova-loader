@@ -1,0 +1,113 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── CSS custom properties per theme ───────────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  --bg-base:     #0D0E10;
+  --bg-surface:  #151619;
+  --bg-elevated: #1C1D21;
+  --border-subtle: #292B30;
+  --border:        #333539;
+  --text-primary:   #F5F5F5;
+  --text-secondary: #92959D;
+  --text-muted:     #5A5D65;
+}
+
+[data-theme="light"] {
+  --bg-base:     #F4F5F7;
+  --bg-surface:  #FFFFFF;
+  --bg-elevated: #ECEDF0;
+  --border-subtle: #DDE0E6;
+  --border:        #C8CBD4;
+  --text-primary:   #111217;
+  --text-secondary: #5C6170;
+  --text-muted:     #9299A8;
+}
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    min-height: 100vh;
+    line-height: 1.6;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  #root {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-base); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-subtle); }
+
+  /* Focus visible */
+  :focus-visible {
+    outline: 2px solid #E07B39;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+@layer components {
+  @keyframes progress-indeterminate {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(400%); }
+  }
+
+  .progress-indeterminate {
+    animation: progress-indeterminate 1.4s ease-in-out infinite;
+  }
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-fade-up {
+    animation: fade-up 0.25s ease-out forwards;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.2s ease-out forwards;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .animate-spin-slow {
+    animation: spin 0.8s linear infinite;
+  }
+
+  .progress-bar {
+    transition: width 0.4s ease;
+  }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .no-overflow  { overflow-x: hidden; max-width: 100%; }
+}
