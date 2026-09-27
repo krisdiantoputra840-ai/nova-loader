@@ -171,8 +171,8 @@ async def _spotify_info(url: str) -> dict:
 
 async def _spotify_download(url: str, job_id: str, audio_fmt: str = "mp3") -> Path:
     """
-    Use spotdl to download a Spotify track.
-    Returns path to the downloaded audio file.
+    Use spotdl with multiple audio providers (youtube-music, youtube, soundcloud).
+    If spotdl fails to match, fall back to yt-dlp search directly on YouTube.
     """
     fmt = audio_fmt.lower()  # "mp3" or "wav"
     out_dir = DOWNLOAD_DIR / job_id
@@ -180,28 +180,71 @@ async def _spotify_download(url: str, job_id: str, audio_fmt: str = "mp3") -> Pa
 
     out_tpl = str(out_dir / "{title} - {artists}.{output-ext}")
 
+    # Layer 1: spotdl with audio provider fallbacks (youtube-music, youtube, soundcloud)
     cmd = SPOTDL_CMD + [
         "download", url,
         "--output", out_tpl,
         "--format", fmt,
+        "--audio", "youtube-music", "youtube", "soundcloud",
         "--log-level", "ERROR",
     ]
     if FFMPEG_DIR:
         cmd += ["--ffmpeg", str(Path(FFMPEG_DIR) / "ffmpeg.exe")]
 
-    stdout, stderr, code = await _run(cmd, timeout=600)
+    try:
+        await _run(cmd, timeout=300)
+    except Exception:
+        pass
 
-    if code != 0:
-        shutil.rmtree(out_dir, ignore_errors=True)
-        raise HTTPException(status_code=400, detail=f"Spotify download failed: {stderr[-400:]}")
-
-    # Find the downloaded file by format extension first, then any file
+    # Check if spotdl produced a file
     files = list(out_dir.glob(f"*.{fmt}"))
     if not files:
-        files = list(out_dir.iterdir())
+        files = [f for f in out_dir.iterdir() if f.is_file()]
+
+    if files:
+        return files[0]
+
+    # Layer 2: Automatic yt-dlp fallback if spotdl found no usable match
+    track_title = ""
+    track_artist = ""
+    try:
+        meta = await get_info(InfoRequest(url=url))
+        track_title = meta.title or ""
+        track_artist = meta.channel or ""
+    except Exception:
+        pass
+
+    search_query = f"{track_title} {track_artist} audio".strip()
+    if not search_query:
+        search_query = url
+
+    clean_title = _safe_filename(track_title or 'track')
+    clean_artist = _safe_filename(track_artist or 'artist')
+    fallback_out_tpl = str(out_dir / f"{clean_title} - {clean_artist}.%(ext)s")
+
+    ytdlp_args = YTDLP_CMD + [
+        "--no-playlist",
+        "-x",
+        "--audio-format", fmt,
+        "--audio-quality", "0",
+        "-o", fallback_out_tpl,
+        f"ytsearch1:{search_query}",
+    ]
+    if FFMPEG_DIR:
+        ytdlp_args += ["--ffmpeg-location", FFMPEG_DIR]
+
+    try:
+        await _run(ytdlp_args, timeout=300)
+        files = list(out_dir.glob(f"*.{fmt}"))
+        if not files:
+            files = [f for f in out_dir.iterdir() if f.is_file()]
+    except Exception as e:
+        shutil.rmtree(out_dir, ignore_errors=True)
+        raise HTTPException(status_code=500, detail=f"Download failed: {str(e)}")
+
     if not files:
         shutil.rmtree(out_dir, ignore_errors=True)
-        raise HTTPException(status_code=500, detail="Spotify download completed but output file not found.")
+        raise HTTPException(status_code=404, detail="Song could not be found on any audio provider.")
 
     return files[0]
 
