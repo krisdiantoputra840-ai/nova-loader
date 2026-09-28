@@ -92,7 +92,6 @@ interface SettingsProps {
 
 export default function Settings({ settings, onUpdate, onClearHistory, onResetSettings }: SettingsProps) {
   const notifRef = useRef(false);
-  const [customUrl, setCustomUrl] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('nova_api_url') || '' : ''));
   const [serverStatus, setServerStatus] = useState<'idle' | 'checking' | 'connected' | 'disconnected'>('idle');
   const [serverDetail, setServerDetail] = useState<string>('');
 
@@ -194,36 +193,6 @@ export default function Settings({ settings, onUpdate, onClearHistory, onResetSe
                 </div>
               }
             />
-            <div className="px-4 py-3 space-y-2">
-              <div className="flex items-center justify-between text-[12px]">
-                <span className="text-text-muted font-medium">URL Ngrok / Backend</span>
-                <span className="text-text-muted text-[11px]">
-                  Aktif: <span className="text-accent font-mono">{getApiBase()}</span>
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={customUrl}
-                  onChange={(e) => setCustomUrl(e.target.value)}
-                  placeholder={getApiBase()}
-                  className="flex-1 bg-bg-elevated border border-border-subtle text-text-primary text-[12px] rounded-[8px] px-3 py-1.5 outline-none focus:border-accent font-mono"
-                />
-                <button
-                  onClick={() => {
-                    if (customUrl.trim()) {
-                      localStorage.setItem('nova_api_url', customUrl.trim());
-                    } else {
-                      localStorage.removeItem('nova_api_url');
-                    }
-                    checkHealth();
-                  }}
-                  className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-[12px] font-medium rounded-[8px] transition-colors shrink-0"
-                >
-                  Simpan
-                </button>
-              </div>
-            </div>
           </SettingSection>
 
           {/* Downloads */}
