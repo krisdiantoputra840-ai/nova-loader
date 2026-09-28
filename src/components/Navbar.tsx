@@ -1,7 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { Home, Clock, Settings, Menu, X, Play } from 'lucide-react';
-import { useServerStatus } from '../hooks/useServerStatus';
 
 const navLinks = [
   { to: '/', label: 'Home', icon: Home },
@@ -12,7 +11,6 @@ const navLinks = [
 export default function Navbar() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { status: serverStatus } = useServerStatus();
 
   return (
     <header className="border-b border-border-subtle bg-bg-base sticky top-0 z-50">
@@ -68,30 +66,6 @@ export default function Navbar() {
                 </Link>
               );
             })}
-
-            {/* Live Server Indicator */}
-            <Link
-              to="/settings"
-              className={`flex items-center gap-1.5 ml-3 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${
-                serverStatus === 'online'
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/15'
-                  : serverStatus === 'checking'
-                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/15'
-                  : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/15'
-              }`}
-              title="Click to view Backend Settings"
-            >
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  serverStatus === 'online'
-                    ? 'bg-emerald-400 animate-pulse'
-                    : serverStatus === 'checking'
-                    ? 'bg-amber-400 animate-pulse'
-                    : 'bg-red-400'
-                }`}
-              />
-              <span>Server {serverStatus === 'online' ? 'Online' : serverStatus === 'checking' ? 'Checking' : 'Offline'}</span>
-            </Link>
           </nav>
 
           {/* Mobile menu button */}

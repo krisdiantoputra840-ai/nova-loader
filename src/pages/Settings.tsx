@@ -149,93 +149,79 @@ export default function Settings({ settings, onUpdate, onClearHistory, onResetSe
 
         <div className="max-w-[560px] space-y-6">
 
-          {/* Server Status — directly above Downloads */}
-          <SettingSection title="Server Status">
-            <div className="p-4 space-y-3.5">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className={`w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 ${
+          {/* Status Server Website — directly above Downloads */}
+          <SettingSection title="Status Server Website">
+            <SettingRow
+              icon={<Server size={15} strokeWidth={1.75} />}
+              label="Status Server"
+              description={
+                serverStatus === 'connected'
+                  ? `Backend online & siap digunakan (${serverDetail || 'FFmpeg ready'})`
+                  : serverStatus === 'checking'
+                  ? 'Sedang memeriksa koneksi backend...'
+                  : 'Backend offline. Jalankan start_tunnel.bat untuk mengaktifkan'
+              }
+              right={
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
                       serverStatus === 'connected'
-                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                         : serverStatus === 'checking'
-                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                        : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                        ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                        : 'bg-red-500/10 text-red-400 border-red-500/20'
                     }`}
                   >
-                    <Server size={18} strokeWidth={1.75} />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[14px] font-medium text-text-primary">Backend & Ngrok</span>
-                      {serverStatus === 'connected' && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                          Online
-                        </span>
-                      )}
-                      {serverStatus === 'checking' && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                          Checking...
-                        </span>
-                      )}
-                      {serverStatus === 'disconnected' && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-500/10 text-red-400 border border-red-500/20">
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                          Offline
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[12px] text-text-muted mt-0.5 truncate">
-                      {serverStatus === 'connected'
-                        ? serverDetail || 'Connected to backend server'
-                        : 'Cannot reach backend. Make sure start_tunnel.bat is running.'}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={checkHealth}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-[8px] bg-bg-elevated hover:bg-bg-surface border border-border-subtle text-[12px] text-text-secondary hover:text-text-primary transition-colors shrink-0"
-                  title="Check connection now"
-                  aria-label="Refresh status"
-                >
-                  <RefreshCw size={12} className={serverStatus === 'checking' ? 'animate-spin' : ''} />
-                  <span>Refresh</span>
-                </button>
-              </div>
-
-              <div className="border-t border-border-subtle/60 pt-3 space-y-2">
-                <div className="flex items-center justify-between text-[12px]">
-                  <span className="text-text-muted font-medium">Backend URL (Ngrok / Localhost)</span>
-                  <span className="text-text-muted text-[11px]">Auto-detected</span>
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={customUrl}
-                    onChange={(e) => setCustomUrl(e.target.value)}
-                    placeholder={getApiBase()}
-                    className="flex-1 bg-bg-elevated border border-border-subtle text-text-primary text-[12.5px] rounded-[8px] px-3 py-1.5 outline-none focus:border-accent font-mono"
-                  />
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        serverStatus === 'connected'
+                          ? 'bg-emerald-400 animate-pulse'
+                          : serverStatus === 'checking'
+                          ? 'bg-amber-400 animate-pulse'
+                          : 'bg-red-400'
+                      }`}
+                    />
+                    {serverStatus === 'connected' ? 'Online' : serverStatus === 'checking' ? 'Checking...' : 'Offline'}
+                  </span>
                   <button
-                    onClick={() => {
-                      if (customUrl.trim()) {
-                        localStorage.setItem('nova_api_url', customUrl.trim());
-                      } else {
-                        localStorage.removeItem('nova_api_url');
-                      }
-                      checkHealth();
-                    }}
-                    className="px-3.5 py-1.5 bg-accent hover:bg-accent-hover text-white text-[12px] font-medium rounded-[8px] transition-colors shrink-0"
+                    onClick={checkHealth}
+                    className="p-1.5 rounded-[6px] hover:bg-bg-elevated text-text-muted hover:text-text-primary transition-colors"
+                    title="Cek ulang status"
+                    aria-label="Refresh status"
                   >
-                    Save URL
+                    <RefreshCw size={13} className={serverStatus === 'checking' ? 'animate-spin' : ''} />
                   </button>
                 </div>
-                <p className="text-[11px] text-text-muted">
-                  Active endpoint: <code className="text-text-secondary">{getApiBase()}</code>
-                </p>
+              }
+            />
+            <div className="px-4 py-3 space-y-2">
+              <div className="flex items-center justify-between text-[12px]">
+                <span className="text-text-muted font-medium">URL Ngrok / Backend</span>
+                <span className="text-text-muted text-[11px]">
+                  Aktif: <span className="text-accent font-mono">{getApiBase()}</span>
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={customUrl}
+                  onChange={(e) => setCustomUrl(e.target.value)}
+                  placeholder={getApiBase()}
+                  className="flex-1 bg-bg-elevated border border-border-subtle text-text-primary text-[12px] rounded-[8px] px-3 py-1.5 outline-none focus:border-accent font-mono"
+                />
+                <button
+                  onClick={() => {
+                    if (customUrl.trim()) {
+                      localStorage.setItem('nova_api_url', customUrl.trim());
+                    } else {
+                      localStorage.removeItem('nova_api_url');
+                    }
+                    checkHealth();
+                  }}
+                  className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-[12px] font-medium rounded-[8px] transition-colors shrink-0"
+                >
+                  Simpan
+                </button>
               </div>
             </div>
           </SettingSection>
