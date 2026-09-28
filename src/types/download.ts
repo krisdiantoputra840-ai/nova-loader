@@ -22,6 +22,8 @@ export interface MediaInfo {
   thumbnail: string | null;
   duration: string;
   url: string;
+  is_playlist?: boolean;
+  track_count?: number;
 }
 
 export interface SelectedFormat {
@@ -47,6 +49,8 @@ export interface DownloadItem {
   completedAt: Date;
   url: string;
   duration?: string;
+  is_playlist?: boolean;
+  track_count?: number;
 }
 
 export function itemToMediaInfo(item: DownloadItem): MediaInfo {
@@ -57,5 +61,7 @@ export function itemToMediaInfo(item: DownloadItem): MediaInfo {
     thumbnail: item.thumbnail,
     duration: item.duration && item.duration !== '0:00' ? item.duration : '',
     url: item.url || '',
+    is_playlist: item.is_playlist,
+    track_count: item.track_count,
   };
 }

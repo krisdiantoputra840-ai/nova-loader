@@ -1,6 +1,7 @@
-import { useRef } from 'react';
-import { ChevronRight, Folder, Monitor, Bell, Info, Trash2, RotateCcw, Sun, Moon, Laptop } from 'lucide-react';
+import { useRef, useState, useEffect } from 'react';
+import { ChevronRight, Folder, Monitor, Bell, Info, Trash2, RotateCcw, Sun, Moon, Laptop, Server, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
 import type { AppSettings, Theme, DefaultFormat, DefaultQuality } from '../hooks/useSettings';
+import { getApiBase } from '../api/client';
 
 interface ToggleProps {
   id: string;
@@ -91,10 +92,36 @@ interface SettingsProps {
 
 export default function Settings({ settings, onUpdate, onClearHistory, onResetSettings }: SettingsProps) {
   const notifRef = useRef(false);
+  const [customUrl, setCustomUrl] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('nova_api_url') || '' : ''));
+  const [serverStatus, setServerStatus] = useState<'idle' | 'checking' | 'connected' | 'disconnected'>('idle');
+  const [serverDetail, setServerDetail] = useState<string>('');
+
+  const checkHealth = async () => {
+    setServerStatus('checking');
+    try {
+      const res = await fetch(`${getApiBase()}/api/health`, {
+        headers: { 'ngrok-skip-browser-warning': 'true' }
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setServerStatus('connected');
+        setServerDetail(d.ffmpeg ? 'FFmpeg ready' : 'Connected');
+      } else {
+        setServerStatus('disconnected');
+        setServerDetail(`HTTP ${res.status}`);
+      }
+    } catch {
+      setServerStatus('disconnected');
+      setServerDetail('Unreachable');
+    }
+  };
+
+  useEffect(() => {
+    checkHealth();
+  }, []);
 
   const handleNotifications = async (val: boolean) => {
     if (val && !notifRef.current) {
-      // Request browser notification permission
       if ('Notification' in window) {
         const perm = await Notification.requestPermission();
         if (perm !== 'granted') {
@@ -121,6 +148,73 @@ export default function Settings({ settings, onUpdate, onClearHistory, onResetSe
         </h1>
 
         <div className="max-w-[560px] space-y-6">
+
+          {/* Backend API Server */}
+          <SettingSection title="Backend Connection">
+            <div className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Server size={15} strokeWidth={1.75} className="text-text-muted" />
+                  <span className="text-[13.5px] text-text-primary">Server Status</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {serverStatus === 'checking' && (
+                    <span className="text-[12px] text-text-muted flex items-center gap-1">
+                      <RefreshCw size={12} className="animate-spin" /> Checking...
+                    </span>
+                  )}
+                  {serverStatus === 'connected' && (
+                    <span className="text-[12px] text-emerald-400 font-medium flex items-center gap-1">
+                      <CheckCircle2 size={13} /> Online ({serverDetail})
+                    </span>
+                  )}
+                  {serverStatus === 'disconnected' && (
+                    <span className="text-[12px] text-red-400 font-medium flex items-center gap-1">
+                      <XCircle size={13} /> Offline
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-1.5 pt-1">
+                <label className="text-[12px] text-text-muted block">
+                  API Endpoint URL
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={customUrl}
+                    onChange={(e) => setCustomUrl(e.target.value)}
+                    placeholder={getApiBase()}
+                    className="flex-1 bg-bg-elevated border border-border-subtle text-text-primary text-[13px] rounded-[8px] px-3 py-1.5 outline-none focus:border-accent"
+                  />
+                  <button
+                    onClick={() => {
+                      if (customUrl.trim()) {
+                        localStorage.setItem('nova_api_url', customUrl.trim());
+                      } else {
+                        localStorage.removeItem('nova_api_url');
+                      }
+                      checkHealth();
+                    }}
+                    className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-[12.5px] font-medium rounded-[8px] transition-colors"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={checkHealth}
+                    className="px-2.5 py-1.5 bg-bg-elevated hover:bg-bg-surface border border-border-subtle text-text-secondary text-[12.5px] rounded-[8px] transition-colors"
+                    title="Test Connection"
+                  >
+                    <RefreshCw size={13} />
+                  </button>
+                </div>
+                <p className="text-[11.5px] text-text-muted">
+                  Current API: <code className="text-text-secondary">{getApiBase()}</code>
+                </p>
+              </div>
+            </div>
+          </SettingSection>
 
           {/* Downloads */}
           <SettingSection title="Downloads">

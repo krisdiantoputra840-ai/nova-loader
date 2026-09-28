@@ -156,7 +156,7 @@ export default function DownloadProgress({ media, format, onComplete }: Download
                 <div className="flex items-center justify-between text-[13px]">
                   <span className="text-text-primary font-medium tabular-nums">{progress}%</span>
                   <span className="text-text-muted text-[12px]">
-                    Processing on server...
+                    {media.is_playlist ? 'Processing & packaging ZIP...' : 'Processing on server...'}
                   </span>
                 </div>
               </div>
@@ -180,7 +180,9 @@ export default function DownloadProgress({ media, format, onComplete }: Download
             <div className="space-y-6 animate-fade-up">
               <div className="flex items-center gap-2 text-emerald-400">
                 <CheckCircle size={20} strokeWidth={1.75} />
-                <span className="text-[15px] font-medium">Download complete</span>
+                <span className="text-[15px] font-medium">
+                  {media.is_playlist ? 'Playlist ZIP downloaded' : 'Download complete'}
+                </span>
               </div>
 
               <div className="flex items-center gap-3.5">

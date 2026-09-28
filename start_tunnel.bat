@@ -11,8 +11,8 @@ start "Nova Backend (Port 8080)" cmd /k "cd /d "%~dp0backend" && python -m uvico
 :: Tunggu 3 detik agar backend siap
 timeout /t 3 /nobreak >nul
 
-:: 2. Jalankan Ngrok Tunnel di jendela cmd baru
-start "Ngrok Tunnel" cmd /k "ngrok http 8080"
+:: 2. Jalankan Ngrok Tunnel di jendela cmd baru (dengan domain statis jika tersedia)
+start "Ngrok Tunnel" cmd /k "ngrok http --url https://bats-tummy-underarm.ngrok-free.dev 8080 || ngrok http 8080"
 
 echo.
 echo [OK] Backend dan Ngrok sudah terbuka di jendela terpisah!

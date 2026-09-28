@@ -67,7 +67,7 @@ export default function MediaDetails({
   const [mediaType, setMediaType] = useState<MediaType>(() => {
     if (initialFormat?.type) return initialFormat.type;
     if (!media) return 'video';
-    if (media.platform === 'spotify' || media.platform === 'ytmusic') return 'audio';
+    if (media.is_playlist || media.platform === 'spotify' || media.platform === 'ytmusic') return 'audio';
     return defaultFormat === 'MP3' || defaultFormat === 'WAV' ? 'audio' : 'video';
   });
   const [videoQuality, setVideoQuality] = useState(() => {
@@ -151,8 +151,23 @@ export default function MediaDetails({
           {/* Media preview */}
           <MediaPreview media={{ ...media, duration: currentDuration, channel: currentChannel || media.channel }} />
 
-          {/* Info banner for Spotify / YT Music */}
-          {isSpotifyOrMusic && (
+          {/* Playlist Info Banner */}
+          {media.is_playlist && (
+            <div className="flex items-start gap-3 p-4 bg-accent/10 border border-accent/30 rounded-[12px] text-[13px]">
+              <Info size={16} strokeWidth={2} className="text-accent mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-text-primary text-[14px]">
+                  Full Playlist / Album Mode {media.track_count ? `(${media.track_count} Tracks)` : ''}
+                </p>
+                <p className="text-[12.5px] text-text-secondary mt-0.5 leading-relaxed">
+                  All tracks in this playlist will be downloaded and packaged into a single ZIP file for you.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Info banner for single Spotify / YT Music */}
+          {!media.is_playlist && isSpotifyOrMusic && (
             <div className="flex items-start gap-2.5 px-4 py-3 bg-bg-elevated border border-border-subtle rounded-[10px] text-[13px] text-text-secondary">
               <Info size={14} strokeWidth={1.75} className="text-accent mt-0.5 shrink-0" />
               <span>
@@ -175,8 +190,8 @@ export default function MediaDetails({
 
           <div className="border-t border-border-subtle" />
 
-          {/* Format toggle — hide for Spotify/YT Music (audio-only) */}
-          {!isSpotifyOrMusic && (
+          {/* Format toggle — hide for Spotify/YT Music or Playlists (audio-only) */}
+          {!isSpotifyOrMusic && !media.is_playlist && (
             <div className="space-y-2">
               <p className="text-[12px] text-text-muted uppercase tracking-wider font-medium">Format</p>
               <FormatSelector value={mediaType} onChange={(v) => setMediaType(v)} />
@@ -249,7 +264,10 @@ export default function MediaDetails({
             aria-label="Start download"
           >
             <Download size={15} strokeWidth={2} />
-            Download {mediaType === 'audio' ? audioFormat : isTikTok ? (tiktokQuality === 'no_watermark' ? 'MP4 (Without Watermark)' : 'MP4 (With Watermark)') : 'MP4'}
+            {media.is_playlist
+              ? `Download Full Playlist (${audioFormat} ZIP)`
+              : `Download ${mediaType === 'audio' ? audioFormat : isTikTok ? (tiktokQuality === 'no_watermark' ? 'MP4 (Without Watermark)' : 'MP4 (With Watermark)') : 'MP4'}`
+            }
           </button>
         </div>
       </div>

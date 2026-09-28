@@ -9,7 +9,17 @@ const isLocal = typeof window !== 'undefined' && (
   window.location.hostname.endsWith('.local')
 );
 
-export const API_BASE = (import.meta as any).env?.VITE_API_URL || (isLocal ? `http://${window.location.hostname}:8080` : 'https://bats-tummy-underarm.ngrok-free.dev');
+export function getApiBase(): string {
+  if (typeof window !== 'undefined') {
+    const custom = localStorage.getItem('nova_api_url');
+    if (custom && custom.trim()) {
+      return custom.trim().replace(/\/+$/, '');
+    }
+  }
+  return (import.meta as any).env?.VITE_API_URL || (isLocal ? `http://${window.location.hostname}:8080` : 'https://bats-tummy-underarm.ngrok-free.dev');
+}
+
+export const API_BASE = getApiBase();
 
 export interface ApiMediaInfo {
   title: string;
@@ -18,11 +28,13 @@ export interface ApiMediaInfo {
   thumbnail: string | null;
   duration: string;
   url: string;
+  is_playlist?: boolean;
+  track_count?: number;
 }
 
 export async function fetchMediaInfo(url: string): Promise<ApiMediaInfo> {
   try {
-    const res = await fetch(`${API_BASE}/api/info`, {
+    const res = await fetch(`${getApiBase()}/api/info`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -43,7 +55,7 @@ export async function fetchMediaInfo(url: string): Promise<ApiMediaInfo> {
       throw new Error(
         isLocal 
           ? 'Cannot connect to backend server on port 8080. Please make sure start_backend.bat is running.' 
-          : 'Could not connect to download server. Please check your internet connection.'
+          : 'Could not connect to download server. Connection timed out or server unavailable.'
       );
     }
     throw err;
@@ -58,7 +70,7 @@ export async function downloadMedia(params: {
   no_watermark?: boolean;
 }): Promise<{ blob: Blob; filename: string }> {
   try {
-    const res = await fetch(`${API_BASE}/api/download`, {
+    const res = await fetch(`${getApiBase()}/api/download`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',

@@ -44,6 +44,8 @@ export default function Home({
         thumbnail: info.thumbnail,
         duration: info.duration,
         url: info.url,
+        is_playlist: info.is_playlist,
+        track_count: info.track_count,
       };
 
       onMediaDetected(media);

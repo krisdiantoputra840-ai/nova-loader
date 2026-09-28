@@ -18,6 +18,7 @@ import functools
 import subprocess
 import shutil
 import re
+import zipfile
 from pathlib import Path
 from typing import Optional
 from concurrent.futures import ThreadPoolExecutor
@@ -86,6 +87,8 @@ class MediaInfoResponse(BaseModel):
     thumbnail: Optional[str]
     duration: str
     url: str
+    is_playlist: bool = False
+    track_count: Optional[int] = None
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -102,6 +105,16 @@ def _detect_platform(url: str) -> str:
 def _is_spotify(url: str) -> bool:
     u = url.lower()
     return "spotify.com" in u or "spotify.link" in u
+
+def _is_playlist_url(url: str) -> bool:
+    u = url.lower()
+    if "spotify.com/playlist/" in u or "spotify.com/album/" in u:
+        return True
+    if "music.youtube.com" in u and ("list=" in u or "playlist" in u):
+        return True
+    if "youtube.com" in u and ("list=" in u or "playlist" in u):
+        return True
+    return False
 
 def _fmt_duration(seconds) -> str:
     if not seconds:
@@ -170,14 +183,47 @@ async def _spotify_info(url: str) -> dict:
         save_file.unlink(missing_ok=True)
 
 
+def _tag_mp3(file_path: Path, title: str, artist: str, thumbnail_url: Optional[str] = None):
+    """Embed ID3 metadata (Title, Artist, and Cover Art) into an MP3 file."""
+    try:
+        from mutagen.id3 import ID3, TIT2, TPE1, APIC, ID3NoHeaderError
+        try:
+            audio = ID3(str(file_path))
+        except ID3NoHeaderError:
+            audio = ID3()
+
+        if title and title != "Unknown Track":
+            audio["TIT2"] = TIT2(encoding=3, text=title)
+        if artist and artist not in ("Unknown Artist", "Unknown"):
+            audio["TPE1"] = TPE1(encoding=3, text=artist)
+
+        if thumbnail_url:
+            try:
+                import urllib.request as urlreq
+                req_thumb = urlreq.Request(thumbnail_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+                with urlreq.urlopen(req_thumb, timeout=6) as resp:
+                    img_data = resp.read()
+                    c_type = resp.headers.get("Content-Type", "image/jpeg")
+                audio["APIC"] = APIC(
+                    encoding=3,
+                    mime=c_type,
+                    type=3,
+                    desc="Cover",
+                    data=img_data
+                )
+            except Exception:
+                pass
+
+        audio.save(str(file_path))
+    except Exception:
+        pass
+
+
 async def _spotify_download(url: str, job_id: str, audio_fmt: str = "mp3") -> Path:
     """
-    Download Spotify track by searching and fetching the highest quality audio stream
+    Download Spotify single track by searching and fetching the highest quality audio stream
     from YouTube / YouTube Music via yt-dlp in seconds, and tagging the output file with
     official Spotify metadata (Title, Artist, and Cover Art) using Mutagen.
-
-    This guarantees ultra-fast downloads (3-6s), prevents server connection timeouts,
-    and ensures tracks always download successfully even if missing on spotdl.
     """
     fmt = audio_fmt.lower()  # "mp3" or "wav"
     out_dir = DOWNLOAD_DIR / job_id
@@ -242,42 +288,175 @@ async def _spotify_download(url: str, job_id: str, audio_fmt: str = "mp3") -> Pa
 
     output_file = files[0]
 
-    # Tag with official Spotify metadata (ID3 for MP3)
     if fmt == "mp3":
-        try:
-            from mutagen.id3 import ID3, TIT2, TPE1, APIC, ID3NoHeaderError
-            try:
-                audio = ID3(str(output_file))
-            except ID3NoHeaderError:
-                audio = ID3()
+        _tag_mp3(output_file, track_title, clean_artist, thumbnail_url)
 
-            if track_title and track_title != "Unknown Track":
-                audio["TIT2"] = TIT2(encoding=3, text=track_title)
-            if clean_artist:
-                audio["TPE1"] = TPE1(encoding=3, text=clean_artist)
+    return output_file
 
-            if thumbnail_url:
+
+def _fetch_spotify_playlist_data(url: str) -> tuple[str, str, Optional[str], list[dict]]:
+    """
+    Extracts title, creator, thumbnail, and track list from Spotify playlist or album.
+    Returns: (title, creator, thumbnail, tracks)
+    """
+    import urllib.request as urlreq
+
+    p_type = "album" if "/album/" in url else "playlist"
+    m_id = re.search(r'/(playlist|album)/([a-zA-Z0-9]+)', url)
+    if not m_id:
+        raise HTTPException(status_code=400, detail="Invalid Spotify playlist or album URL.")
+    entity_id = m_id.group(2)
+
+    canonical_url = f"https://open.spotify.com/{p_type}/{entity_id}"
+    embed_url = f"https://open.spotify.com/embed/{p_type}/{entity_id}"
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+
+    title = f"Spotify {p_type.capitalize()}"
+    creator = "Spotify"
+    thumbnail = None
+    tracks = []
+
+    # 1. Public oembed
+    try:
+        oe_url = f"https://open.spotify.com/oembed?url={canonical_url}"
+        req_oe = urlreq.Request(oe_url, headers=headers)
+        with urlreq.urlopen(req_oe, timeout=8) as r:
+            oe = json.loads(r.read())
+            if oe.get("title"):
+                title = oe["title"]
+            if oe.get("thumbnail_url"):
+                thumbnail = oe["thumbnail_url"]
+    except Exception:
+        pass
+
+    # 2. Scrape embed page NEXT_DATA
+    try:
+        req_page = urlreq.Request(embed_url, headers=headers)
+        with urlreq.urlopen(req_page, timeout=10) as r:
+            html = r.read().decode("utf-8", errors="replace")
+
+        m = re.search(r'<script\s+id=[\'"]__NEXT_DATA__[\'"][^>]*>(.*?)</script>', html)
+        if m:
+            data = json.loads(m.group(1))
+            entity = data.get("props", {}).get("pageProps", {}).get("state", {}).get("data", {}).get("entity", {})
+            if entity.get("name"):
+                title = entity["name"]
+
+            if not thumbnail:
+                covers = entity.get("coverArt", {}).get("sources", [])
+                if covers:
+                    thumbnail = covers[0].get("url")
+
+            raw_tracks = entity.get("trackList", [])
+            for t in raw_tracks:
+                t_name = t.get("title", "").strip()
+                t_artist = t.get("subtitle", "").strip()
+                if t_name:
+                    tracks.append({
+                        "title": t_name,
+                        "artist": t_artist,
+                        "thumbnail": thumbnail,
+                    })
+    except Exception:
+        pass
+
+    return title, creator, thumbnail, tracks
+
+
+async def _download_playlist(url: str, job_id: str, audio_fmt: str = "mp3", quality: str = "320kbps") -> Path:
+    """
+    Downloads all tracks from a Spotify or YouTube Music / YouTube playlist,
+    packages them into a single .zip file, and returns the path to the zip file.
+    """
+    fmt = audio_fmt.lower()
+    job_dir = DOWNLOAD_DIR / job_id
+    job_dir.mkdir(parents=True, exist_ok=True)
+    songs_dir = job_dir / "tracks"
+    songs_dir.mkdir(parents=True, exist_ok=True)
+
+    platform = _detect_platform(url)
+    clean_playlist_name = "Playlist"
+
+    if platform == "spotify":
+        title, creator, thumbnail, tracks = _fetch_spotify_playlist_data(url)
+        clean_playlist_name = _safe_filename(title or "Spotify_Playlist")
+
+        if not tracks:
+            raise HTTPException(status_code=404, detail="No tracks found in Spotify playlist/album.")
+
+        # Limit to 100 tracks to avoid excessive timeout/memory
+        tracks_to_dl = tracks[:100]
+
+        # Semaphore for parallel download workers
+        sem = asyncio.Semaphore(4)
+
+        async def _download_track(idx: int, t: dict):
+            async with sem:
+                t_title = t.get("title", "")
+                t_artist = t.get("artist", "")
+                clean_t = _safe_filename(t_title or f"Track_{idx}")
+                clean_a = _safe_filename(t_artist or "")
+                out_name = f"{idx:02d}. {clean_t} - {clean_a}.%(ext)s" if clean_a else f"{idx:02d}. {clean_t}.%(ext)s"
+                out_tpl = str(songs_dir / out_name)
+
+                query = f"{t_title} {t_artist} audio".strip() if t_artist else f"{t_title} audio"
+                ytdlp_args = YTDLP_CMD + [
+                    "--no-playlist",
+                    "-x",
+                    "--audio-format", fmt,
+                    "--audio-quality", "0",
+                    "-o", out_tpl,
+                    f"ytsearch1:{query}",
+                ]
+                if FFMPEG_DIR:
+                    ytdlp_args += ["--ffmpeg-location", FFMPEG_DIR]
+
                 try:
-                    import urllib.request as urlreq
-                    req_thumb = urlreq.Request(thumbnail_url, headers={"User-Agent": "Mozilla/5.0"})
-                    with urlreq.urlopen(req_thumb, timeout=6) as resp:
-                        img_data = resp.read()
-                        c_type = resp.headers.get("Content-Type", "image/jpeg")
-                    audio["APIC"] = APIC(
-                        encoding=3,
-                        mime=c_type,
-                        type=3,
-                        desc="Cover",
-                        data=img_data
-                    )
+                    await _run(ytdlp_args, timeout=60)
+                    if fmt == "mp3":
+                        matched = list(songs_dir.glob(f"{idx:02d}.*.mp3"))
+                        if matched:
+                            _tag_mp3(matched[0], t_title, t_artist, t.get("thumbnail"))
                 except Exception:
                     pass
 
-            audio.save(str(output_file))
-        except Exception:
-            pass
+        tasks = [_download_track(i + 1, tr) for i, tr in enumerate(tracks_to_dl)]
+        await asyncio.gather(*tasks)
 
-    return output_file
+    else:
+        # YouTube / YouTube Music playlist
+        try:
+            r_out, _, _ = await _run(YTDLP_CMD + ["--dump-single-json", "--flat-playlist", "--skip-download", url], timeout=30)
+            p_data = json.loads(r_out)
+            if p_data.get("title"):
+                clean_playlist_name = _safe_filename(p_data["title"])
+        except Exception:
+            clean_playlist_name = "Playlist"
+
+        out_tpl = str(songs_dir / "%(playlist_index)02d. %(title)s.%(ext)s")
+        ytdlp_args = YTDLP_CMD + [
+            "-x",
+            "--audio-format", fmt,
+            "--audio-quality", "0",
+            "-o", out_tpl,
+            url
+        ]
+        if FFMPEG_DIR:
+            ytdlp_args += ["--ffmpeg-location", FFMPEG_DIR]
+
+        await _run(ytdlp_args, timeout=600)
+
+    downloaded_files = [f for f in songs_dir.iterdir() if f.is_file() and not f.name.endswith(".zip")]
+    if not downloaded_files:
+        shutil.rmtree(job_dir, ignore_errors=True)
+        raise HTTPException(status_code=404, detail="No audio tracks could be downloaded from this playlist.")
+
+    zip_file = job_dir / f"{clean_playlist_name}.zip"
+    with zipfile.ZipFile(zip_file, "w", zipfile.ZIP_DEFLATED) as zf:
+        for f in sorted(downloaded_files):
+            zf.write(f, arcname=f.name)
+
+    return zip_file
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -307,13 +486,28 @@ async def get_info(req: InfoRequest):
             except Exception:
                 pass
 
+        # Check if Spotify playlist or album
+        if "/playlist/" in req.url or "/album/" in req.url:
+            title, creator, thumbnail, tracks = _fetch_spotify_playlist_data(req.url)
+            p_type = "Album" if "/album/" in req.url else "Playlist"
+            return MediaInfoResponse(
+                title=f"[{p_type}] {title}",
+                channel=f"Spotify · {len(tracks)} tracks",
+                platform="spotify",
+                thumbnail=thumbnail,
+                duration=f"{len(tracks)} tracks",
+                url=req.url,
+                is_playlist=True,
+                track_count=len(tracks),
+            )
+
         # Extract track ID from URL
         track_id = None
         if "/track/" in req.url:
             track_id = req.url.split("/track/")[-1].split("?")[0].strip("/").strip()
 
         if not track_id:
-            raise HTTPException(status_code=400, detail="Invalid Spotify track URL. Only individual tracks are supported.")
+            raise HTTPException(status_code=400, detail="Invalid Spotify track URL. Please provide a track, playlist, or album link.")
 
         canonical_url = f"https://open.spotify.com/track/{track_id}"
 
@@ -420,7 +614,12 @@ async def get_info(req: InfoRequest):
         )
 
     # ── YouTube / YT Music / TikTok / Instagram ───────────────────────────────
-    args = YTDLP_CMD + ["--dump-json", "--no-playlist", "--skip-download", req.url]
+    is_playlist = _is_playlist_url(req.url)
+    if is_playlist:
+        args = YTDLP_CMD + ["--dump-single-json", "--flat-playlist", "--skip-download", req.url]
+    else:
+        args = YTDLP_CMD + ["--dump-json", "--no-playlist", "--skip-download", req.url]
+
     try:
         stdout, stderr, code = await _run(args, timeout=45)
     except subprocess.TimeoutExpired:
@@ -443,19 +642,31 @@ async def get_info(req: InfoRequest):
         if thumbnails and isinstance(thumbnails, list):
             thumbnail = thumbnails[-1].get("url")
 
+    entries = data.get("entries") or []
+    track_count = len(entries) if is_playlist else None
+
+    display_title = data.get("title", "Unknown Title")
+    if is_playlist and not display_title.startswith("[Playlist]"):
+        display_title = f"[Playlist] {display_title}"
+
+    display_duration = f"{track_count} tracks" if is_playlist else _fmt_duration(data.get("duration"))
+    display_channel = f"{data.get('uploader') or data.get('channel') or 'Creator'} · {track_count} tracks" if is_playlist else (
+        data.get("uploader")
+        or data.get("channel")
+        or data.get("creator")
+        or data.get("artist")
+        or "Unknown"
+    )
+
     return MediaInfoResponse(
-        title=data.get("title", "Unknown Title"),
-        channel=(
-            data.get("uploader")
-            or data.get("channel")
-            or data.get("creator")
-            or data.get("artist")
-            or "Unknown"
-        ),
+        title=display_title,
+        channel=display_channel,
         platform=platform,
         thumbnail=thumbnail,
-        duration=_fmt_duration(data.get("duration")),
+        duration=display_duration,
         url=req.url,
+        is_playlist=is_playlist,
+        track_count=track_count,
     )
 
 
@@ -515,8 +726,34 @@ def _ensure_h264_mp4(file_path: Path) -> Path:
 async def download_media(req: DownloadRequest):
     platform = _detect_platform(req.url)
     job_id = uuid.uuid4().hex
+    is_playlist = _is_playlist_url(req.url)
 
-    # ── Spotify download ──────────────────────────────────────────────────────
+    # ── Full Playlist / Album Download as ZIP (Spotify & YT Music) ───────────
+    if is_playlist:
+        audio_fmt = req.format.lower() if req.format else "mp3"
+        zip_file = await _download_playlist(req.url, job_id, audio_fmt, req.quality)
+        size = zip_file.stat().st_size
+        safe_name = _safe_filename(zip_file.name).replace('"', "'")
+        out_dir = zip_file.parent
+
+        def stream_zip():
+            try:
+                with open(zip_file, "rb") as f:
+                    while chunk := f.read(65536):
+                        yield chunk
+            finally:
+                shutil.rmtree(out_dir, ignore_errors=True)
+
+        return StreamingResponse(
+            stream_zip(),
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f'attachment; filename="{safe_name}"',
+                "Content-Length": str(size),
+            },
+        )
+
+    # ── Spotify single track download ─────────────────────────────────────────
     if platform == "spotify":
         audio_fmt = req.format.lower() if req.format else "mp3"  # "mp3" or "wav"
         output_file = await _spotify_download(req.url, job_id, audio_fmt)
