@@ -93,7 +93,6 @@ interface SettingsProps {
 export default function Settings({ settings, onUpdate, onClearHistory, onResetSettings }: SettingsProps) {
   const notifRef = useRef(false);
   const [serverStatus, setServerStatus] = useState<'idle' | 'checking' | 'connected' | 'disconnected'>('idle');
-  const [serverDetail, setServerDetail] = useState<string>('');
 
   const checkHealth = async () => {
     setServerStatus('checking');
@@ -102,16 +101,12 @@ export default function Settings({ settings, onUpdate, onClearHistory, onResetSe
         headers: { 'ngrok-skip-browser-warning': 'true' }
       });
       if (res.ok) {
-        const d = await res.json();
         setServerStatus('connected');
-        setServerDetail(d.ffmpeg ? 'FFmpeg ready' : 'Connected');
       } else {
         setServerStatus('disconnected');
-        setServerDetail(`HTTP ${res.status}`);
       }
     } catch {
       setServerStatus('disconnected');
-      setServerDetail('Unreachable');
     }
   };
 
@@ -148,17 +143,17 @@ export default function Settings({ settings, onUpdate, onClearHistory, onResetSe
 
         <div className="max-w-[560px] space-y-6">
 
-          {/* Status Server Website — directly above Downloads */}
-          <SettingSection title="Status Server Website">
+          {/* Server Status — directly above Downloads */}
+          <SettingSection title="Server Status">
             <SettingRow
               icon={<Server size={15} strokeWidth={1.75} />}
-              label="Status Server"
+              label="Server Status"
               description={
                 serverStatus === 'connected'
-                  ? `Backend online & siap digunakan (${serverDetail || 'FFmpeg ready'})`
+                  ? 'Server online'
                   : serverStatus === 'checking'
-                  ? 'Sedang memeriksa koneksi backend...'
-                  : 'Backend offline. Jalankan start_tunnel.bat untuk mengaktifkan'
+                  ? 'Checking server status...'
+                  : 'Server offline'
               }
               right={
                 <div className="flex items-center gap-2">
@@ -185,7 +180,7 @@ export default function Settings({ settings, onUpdate, onClearHistory, onResetSe
                   <button
                     onClick={checkHealth}
                     className="p-1.5 rounded-[6px] hover:bg-bg-elevated text-text-muted hover:text-text-primary transition-colors"
-                    title="Cek ulang status"
+                    title="Check server status"
                     aria-label="Refresh status"
                   >
                     <RefreshCw size={13} className={serverStatus === 'checking' ? 'animate-spin' : ''} />
