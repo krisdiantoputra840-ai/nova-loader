@@ -1,6 +1,7 @@
 // Download types
-export type Platform = 'youtube' | 'tiktok' | 'instagram' | 'spotify' | 'ytmusic';
+export type Platform = 'youtube' | 'tiktok' | 'instagram' | 'spotify' | 'ytmusic' | 'soundcloud';
 export type MediaType = 'video' | 'audio';
+
 export type DownloadStatus = 'completed' | 'downloading' | 'failed' | 'cancelled';
 
 export interface VideoQuality {

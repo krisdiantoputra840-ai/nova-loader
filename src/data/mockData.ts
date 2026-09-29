@@ -59,6 +59,14 @@ export const mockMediaByPlatform: Record<Platform, MediaInfo> = {
     duration: '3:50',
     url: '',
   },
+  soundcloud: {
+    title: 'SoundCloud Track',
+    channel: 'SoundCloud Creator',
+    platform: 'soundcloud',
+    thumbnail: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80',
+    duration: '3:45',
+    url: '',
+  },
 };
 
 export function detectPlatform(url: string): Platform | null {
@@ -67,7 +75,8 @@ export function detectPlatform(url: string): Platform | null {
   if (lower.includes('youtube.com') || lower.includes('youtu.be')) return 'youtube';
   if (lower.includes('tiktok.com')) return 'tiktok';
   if (lower.includes('instagram.com')) return 'instagram';
-  if (lower.includes('spotify.com')) return 'spotify';
+  if (lower.includes('spotify.com') || lower.includes('spotify.link')) return 'spotify';
+  if (lower.includes('soundcloud.com') || lower.includes('snd.sc')) return 'soundcloud';
   return null;
 }
 

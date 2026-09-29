@@ -7,6 +7,7 @@ Platforms supported:
   - TikTok         → yt-dlp
   - Instagram      → yt-dlp
   - Spotify        → spotdl  (finds on YT, downloads with Spotify metadata)
+  - SoundCloud     → yt-dlp  (soundcloud.com & on.soundcloud.com)
 """
 
 import sys
@@ -95,11 +96,12 @@ class MediaInfoResponse(BaseModel):
 
 def _detect_platform(url: str) -> str:
     u = url.lower()
-    if "music.youtube.com" in u:               return "ytmusic"
-    if "youtube.com" in u or "youtu.be" in u:  return "youtube"
-    if "tiktok.com" in u:                      return "tiktok"
-    if "instagram.com" in u:                   return "instagram"
+    if "music.youtube.com" in u:                  return "ytmusic"
+    if "youtube.com" in u or "youtu.be" in u:     return "youtube"
+    if "tiktok.com" in u:                         return "tiktok"
+    if "instagram.com" in u:                      return "instagram"
     if "spotify.com" in u or "spotify.link" in u: return "spotify"
+    if "soundcloud.com" in u or "snd.sc" in u:    return "soundcloud"
     return "unknown"
 
 def _is_spotify(url: str) -> bool:
@@ -113,6 +115,8 @@ def _is_playlist_url(url: str) -> bool:
     if "music.youtube.com" in u and ("list=" in u or "playlist" in u):
         return True
     if "youtube.com" in u and ("list=" in u or "playlist" in u):
+        return True
+    if ("soundcloud.com" in u or "snd.sc" in u) and ("/sets/" in u):
         return True
     return False
 
@@ -883,3 +887,13 @@ async def download_media(req: DownloadRequest):
             "Content-Length": str(size),
         },
     )
+
+
+if __name__ == "__main__":
+    import uvicorn
+    import os
+    port = int(os.environ.get("PORT", 8080))
+    host = os.environ.get("HOST", "0.0.0.0")
+    print(f"[OK] NOVA Backend running on http://{host}:{port}")
+    uvicorn.run("main:app", host=host, port=port, reload=True)
+

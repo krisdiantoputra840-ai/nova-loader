@@ -28,7 +28,7 @@ export default function MediaDetails({
 }: MediaDetailsProps) {
   const navigate = useNavigate();
   const isTikTok = media?.platform === 'tiktok';
-  const isSpotifyOrMusic = media?.platform === 'spotify' || media?.platform === 'ytmusic';
+  const isAudioOnlyPlatform = media?.platform === 'spotify' || media?.platform === 'ytmusic' || media?.platform === 'soundcloud';
 
   const [currentDuration, setCurrentDuration] = useState<string>(() => {
     return (media?.duration && media.duration !== '0:00') ? media.duration : '';
@@ -67,7 +67,7 @@ export default function MediaDetails({
   const [mediaType, setMediaType] = useState<MediaType>(() => {
     if (initialFormat?.type) return initialFormat.type;
     if (!media) return 'video';
-    if (media.is_playlist || media.platform === 'spotify' || media.platform === 'ytmusic') return 'audio';
+    if (media.is_playlist || isAudioOnlyPlatform) return 'audio';
     return defaultFormat === 'MP3' || defaultFormat === 'WAV' ? 'audio' : 'video';
   });
   const [videoQuality, setVideoQuality] = useState(() => {
@@ -166,13 +166,15 @@ export default function MediaDetails({
             </div>
           )}
 
-          {/* Info banner for single Spotify / YT Music */}
-          {!media.is_playlist && isSpotifyOrMusic && (
+          {/* Info banner for single Spotify / YT Music / SoundCloud */}
+          {!media.is_playlist && isAudioOnlyPlatform && (
             <div className="flex items-start gap-2.5 px-4 py-3 bg-bg-elevated border border-border-subtle rounded-[10px] text-[13px] text-text-secondary">
               <Info size={14} strokeWidth={1.75} className="text-accent mt-0.5 shrink-0" />
               <span>
                 {media.platform === 'spotify'
                   ? 'Spotify downloads via audio matching — quality preserved, no DRM.'
+                  : media.platform === 'soundcloud'
+                  ? 'SoundCloud downloads as high quality audio.'
                   : 'YouTube Music downloads as audio only.'}
               </span>
             </div>
@@ -190,8 +192,8 @@ export default function MediaDetails({
 
           <div className="border-t border-border-subtle" />
 
-          {/* Format toggle — hide for Spotify/YT Music or Playlists (audio-only) */}
-          {!isSpotifyOrMusic && !media.is_playlist && (
+          {/* Format toggle — hide for Spotify/YT Music/SoundCloud or Playlists (audio-only) */}
+          {!isAudioOnlyPlatform && !media.is_playlist && (
             <div className="space-y-2">
               <p className="text-[12px] text-text-muted uppercase tracking-wider font-medium">Format</p>
               <FormatSelector value={mediaType} onChange={(v) => setMediaType(v)} />

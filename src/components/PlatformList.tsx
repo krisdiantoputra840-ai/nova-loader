@@ -31,6 +31,12 @@ const platformConfig: Record<Platform, { name: string; icon: string; color: stri
     color: '#FF0000',
     bg: 'rgba(255,0,0,0.1)',
   },
+  soundcloud: {
+    name: 'SoundCloud',
+    icon: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.56 8.87V17h8.77c1.78 0 3.23-1.42 3.23-3.17 0-1.7-1.35-3.08-3.04-3.16-.39-2.32-2.4-4.08-4.83-4.08-1.57 0-2.98.74-3.88 1.89-.08.1-.17.2-.25.31zm-1.8 1.48v6.65h1.08v-6.65H9.76zm-1.8 1.13v5.52h1.08v-5.52H7.96zm-1.8.85v4.67h1.08v-4.67H6.16zm-1.8.9v3.77h1.08v-3.77H4.36zm-1.8 1.01v2.76h1.08v-2.76H2.56zm-1.8.95v.86h1.08v-.86H.76z"/></svg>`,
+    color: '#FF5500',
+    bg: 'rgba(255,85,0,0.12)',
+  },
 };
 
 export function PlatformIcon({ platform, size = 16 }: { platform: Platform; size?: number }) {
