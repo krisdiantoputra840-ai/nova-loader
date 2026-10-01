@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nova Loader — Download videos and music</title>
+    <meta name="description" content="Download videos and music from your favorite platforms with a link." />
+    <link rel="icon" type="image/png" href="/logo-transparent.png" />
+    <script>
+      try {
+        const theme = localStorage.getItem("nova-loader-theme");
+        document.documentElement.classList.toggle("dark", theme === "dark" || (theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches));
+      } catch {
+        document.documentElement.classList.toggle("dark", matchMedia("(prefers-color-scheme: dark)").matches);
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/client/main.tsx"></script>
+  </body>
+</html>

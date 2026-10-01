@@ -1,0 +1,38 @@
+{
+  "name": "nova-loader-new",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build:client": "tsc -b && vite build --outDir dist/client",
+    "build:server": "vite build --ssr src/server/node.ts --outDir dist/server",
+    "build": "pnpm build:client && pnpm build:server",
+    "start": "node dist/server/node.js",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.8",
+    "@radix-ui/react-slot": "^1.1.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "hono": "^4.7.2",
+    "lucide-react": "^0.475.0",
+    "motion": "^13.4.6",
+    "radix-ui": "^1.6.7",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwind-merge": "^3.0.1"
+  },
+  "devDependencies": {
+    "@hono/vite-dev-server": "^0.18.2",
+    "@tailwindcss/vite": "^4.0.9",
+    "@types/node": "^22.13.5",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tailwindcss": "^4.0.9",
+    "typescript": "^5.7.3",
+    "vite": "^6.2.0"
+  }
+}
